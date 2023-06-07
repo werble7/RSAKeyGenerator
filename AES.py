@@ -37,15 +37,15 @@ def unpad(message):
     return message[:-message[-1]]
 
 
-def rotate(list):
-    return (list*2)[1:5]
+def rotate(line):
+    return (line*2)[1:5]
 
 
 def convert(msg, size):
     blocsList = []
     
-    for indiceLetra in range(0, len(msg), size):
-        blocsList.append(msg[indiceLetra: indiceLetra + size])
+    for indexLetter in range(0, len(msg), size):
+        blocsList.append(msg[indexLetter: indexLetter + size])
 
     return blocsList
 
@@ -113,8 +113,8 @@ def cipher(block, keys):
 
 
 def ctr(msg, key, iv):
-    chaves = expand_key(key)
-    blocos = convert(msg, 16)
-    cifras = (cipher(nonce, chaves) for nonce in inc(iv))
-    textoCifrado = map(add_round_key, blocos, cifras)
-    return b''.join(textoCifrado)
+    keys = expand_key(key)
+    blocks = convert(msg, 16)
+    ciphers = (cipher(nonce, keys) for nonce in inc(iv))
+    cipherText = map(add_round_key, blocks, ciphers)
+    return b''.join(cipherText)

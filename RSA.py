@@ -31,7 +31,7 @@ def generatePrime(size):
             return x
 
 
-# Miller Rabin
+# Miller Rabin: method to test prime numbers
 def isPrime(n):
     k = 0
     m = n - 1
@@ -84,9 +84,9 @@ def rsa(key, msg):
 
 
 def cipher(key, msg):
-    txt_cifrado = OAEP.cipher_oaep(key[0], msg)
+    cipher_text = OAEP.cipher_oaep(key[0], msg)
 
-    return rsa(key, txt_cifrado)
+    return rsa(key, cipher_text)
 
 
 def decipher(key, cipher_text):
