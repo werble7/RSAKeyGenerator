@@ -3,12 +3,11 @@
 import base64
 import secrets
 from pathlib import Path
-
 import AES
 import RSA
 
 public_key, private_key = (0, 0), (0, 0)
-signature, sess_key, sess_key_cipher = b'', b'', b''
+signature, session_key, session_key_cipher = b'', b'', b''
 
 while True:
     op = int(input("Choose An Option:\n 1- Generate Keys\n 2- Cipher\n 3- Decipher\n 4- Exit\n"))
@@ -20,6 +19,17 @@ while True:
         print(f'Public key:\nN: {public_key[0]}\nE: {public_key[1]}\n')
         print(f'Private key:\nN: {private_key[0]}\nD: {private_key[1]}\n')
 
+        public_key_archive = Path(__file__).absolute().parent / "public_key.txt"
+        private_key_archive = Path(__file__).absolute().parent / "private_key.txt"
+
+        with open(public_key_archive, "wb") as f:
+            f.write(public_key[0].to_bytes(public_key[0].bit_length(), 'big'))
+            f.write(public_key[1].to_bytes(public_key[1].bit_length(), 'big'))
+
+        with open(private_key_archive, "wb") as f:
+            f.write(private_key[0].to_bytes(private_key[0].bit_length(), 'big'))
+            f.write(private_key[1].to_bytes(private_key[1].bit_length(), 'big'))
+
     # Cipher and sign message
     elif op == 2:
 
@@ -29,9 +39,9 @@ while True:
 
         key, iv = secrets.token_bytes(16), secrets.token_bytes(16)
 
-        sess_key = key + iv
-        sess_key_cipher = RSA.cipher(public_key, sess_key)
-        sess_key_cipher = base64.b64encode(sess_key_cipher).decode("ascii")
+        session_key = key + iv
+        session_key_cipher = RSA.cipher(public_key, session_key)
+        session_key_cipher = base64.b64encode(session_key_cipher).decode("ascii")
 
         arc = input('\nName of the archive to be cipher: \n')
         archive = Path(__file__).absolute().parent / arc
@@ -47,19 +57,14 @@ while True:
 
         print("\nMessage:\n")
         print(msg, '\n')
-        input()
         print('\nCipher message:\n')
         print(cipher_msg, '\n')
-        input()
         print("\nSession's key:\n")
-        print(sess_key, '\n')
-        input()
+        print(session_key, '\n')
         print("\nCipher session's key:\n")
-        print(sess_key_cipher, '\n')
-        input()
+        print(session_key_cipher, '\n')
         print('\nSignature:\n')
         print(signature, '\n')
-        input()
 
     # Decipher and verify cipher's signature
     elif op == 3:
@@ -68,17 +73,17 @@ while True:
             print("Generate keys first")
             continue
 
-        arc = input('\nName of the archive to be decipher: ')
+        arc = input('\nName of the archive to be decipher:\n')
         print()
         file = Path(__file__).absolute().parent / arc
         with open(file, "rb") as f:
             cipher_msg = f.read()
        
         signature = base64.b64decode(signature)
-        sess_key_cipher = base64.b64decode(sess_key_cipher)
+        session_key_cipher = base64.b64decode(session_key_cipher)
         
-        sess_key = RSA.decipher(private_key, sess_key_cipher)
-        key, iv = sess_key[:16], sess_key[16:]
+        session_key = RSA.decipher(private_key, session_key_cipher)
+        key, iv = session_key[:16], session_key[16:]
 
         msg = AES.ctr(cipher_msg, key, iv)
         check = RSA.verify_signature(public_key, msg, signature)
