@@ -1,0 +1,23 @@
+Gerador/Verificador de Assinaturas
+
+Parte I: Cifração e decifração AES, chave de 128 bits
+a. Geração de chave de 128 bits (16 bytes)
+b. Cifração e decifração
+c. Extra: cifração autenticada modo XTR - Contador de Galois
+
+Parte II: Geração de chave e cifra RSA
+a. Geração de chaves (p e q primos com no mínimo de 1024 bits) testando primalidade
+com Miller-Rabin.
+b. OAEP
+c. Cifração/decifração assimétrica RSA usando OAEP
+
+Parte III: Assinatura RSA
+a. Assinatura da mensagem (cifração do hash da mensagem)
+b. Formatação do resultado (caracteres especiais e informações para verificação em
+BASE64)
+
+Parte IV: Verificação:
+1. Parsing do documento assinado e decifração da mensagem (de acordo com a
+formatação usada, no caso BASE64)
+2. Decifração da assinatura (decifração do hash)
+3. Verificação (cálculo e comparação do hash do arquivo) 
