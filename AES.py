@@ -1,7 +1,6 @@
 from functools import reduce
 from operator import xor
 
-
 SBOX = bytes([
     0x63, 0x7C, 0x77, 0x7B, 0xF2, 0x6B, 0x6F, 0xC5, 0x30, 0x01, 0x67, 0x2B, 0xFE, 0xD7, 0xAB, 0x76,
     0xCA, 0x82, 0xC9, 0x7D, 0xFA, 0x59, 0x47, 0xF0, 0xAD, 0xD4, 0xA2, 0xAF, 0x9C, 0xA4, 0x72, 0xC0,
@@ -42,25 +41,27 @@ def rotate(list):
     return (list*2)[1:5]
 
 
-def convert(msg, tamanho):
-    listaBlocos = []
+def convert(msg, size):
+    blocsList = []
     
-    for indiceLetra in range(0, len(msg), tamanho):
-        listaBlocos.append(msg[indiceLetra: indiceLetra + tamanho])
+    for indiceLetra in range(0, len(msg), size):
+        blocsList.append(msg[indiceLetra: indiceLetra + size])
 
-    return listaBlocos
+    return blocsList
+
 
 def inc(bytes):
     as_int = int.from_bytes(bytes, "big")
     while True:
         as_int += 1
-        yield (as_int).to_bytes(16, "big")
+        yield as_int.to_bytes(16, "big")
 
 
 def xtime(x):
     return (((x << 1) ^ 0x1B) & 0xFF) if (x & 0x80) else (x << 1)
 
-'''The AES algorithm takes the Cipher Key, K, and performs a Key Expansion routine to generate a key schedule.'''
+
+# The AES algorithm takes the Cipher Key, K, and performs a Key Expansion routine to generate a key schedule
 def expand_key(key):
     words = convert(key, 4)
     for i in range(4, 44):
@@ -70,19 +71,27 @@ def expand_key(key):
         words.append(bytes([*map(xor, words[i-4], temp)]))
     return [b''.join(word) for word in convert(words, 4)]
 
-'''transformation, a Round Key is added to the State by a simple bitwise XOR operation. Each Round Key consists of Nb words from the key schedule '''
+
+# transformation, a Round Key is added to the State by a simple bitwise XOR operation.
+# Each Round Key consists of Nb words from the key schedule
 def add_round_key(state, key):
     return bytes(map(xor, state, key))
 
-'''transformation is a non-linear byte substitution that operates independently on each byte of the State using a substitution table'''
+
+# transformation is a non-linear byte substitution that operates
+# independently on each byte of the State using a substitution table
 def sub_bytes(state):
     return state.translate(SBOX)
 
-''' transformation, the bytes in the last three rows of the State are cyclically shifted over different numbers of bytes (offsets)'''
+
+# transformation, the bytes in the last three rows of the State are
+# cyclically shifted over different numbers of bytes (offsets)
 def shift_rows(state, offset=5):
     return (state * offset)[::offset]
 
-'''transformation operates on the State column-by-column, treating each column as a four-term polynomial as described in Sec'''
+
+# transformation operates on the State column-by-column,
+# treating each column as a four-term polynomial as described in Sec
 def mix_column(r):
     return [reduce(xor, [a, *r, xtime(a ^ b)]) for a, b in zip(r, rotate(r))]
 
@@ -103,11 +112,9 @@ def cipher(block, keys):
     return state
 
 
-def ctr(msg, chave, iv):   
-    chaves =  expand_key(chave)
+def ctr(msg, key, iv):
+    chaves = expand_key(key)
     blocos = convert(msg, 16)
     cifras = (cipher(nonce, chaves) for nonce in inc(iv))
     textoCifrado = map(add_round_key, blocos, cifras)
     return b''.join(textoCifrado)
-
-
