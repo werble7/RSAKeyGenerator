@@ -17,8 +17,8 @@ def generateKeys():
     e = generateE(x)
     d = modularInversion(e, x)[1] % x
 
-    public_key = (n, e)
-    private_key = (n, d)
+    public_key = [n, e]
+    private_key = [n, d]
 
     return public_key, private_key
 

@@ -6,11 +6,13 @@ from pathlib import Path
 import AES
 import RSA
 
-public_key, private_key = (0, 0), (0, 0)
+public_key, private_key = [0, 0], [0, 0]
 signature, session_key, session_key_cipher = b'', b'', b''
+public_key_archive = Path(__file__).absolute().parent / "public_key.txt"
+private_key_archive = Path(__file__).absolute().parent / "private_key.txt"
 
 while True:
-    op = int(input("Choose An Option:\n 1- Generate Keys\n 2- Cipher\n 3- Decipher\n 4- Exit\n"))
+    op = int(input("Choose An Option:\n 1- Generate Keys\n 2- Read saved keys\n 3- Cipher\n 4- Decipher\n 5- Exit\n"))
 
     # Generate public and private keys
     if op == 1:
@@ -18,9 +20,6 @@ while True:
 
         print(f'Public key:\nN: {public_key[0]}\nE: {public_key[1]}\n')
         print(f'Private key:\nN: {private_key[0]}\nD: {private_key[1]}\n')
-
-        public_key_archive = Path(__file__).absolute().parent / "public_key.txt"
-        private_key_archive = Path(__file__).absolute().parent / "private_key.txt"
 
         with open(public_key_archive, "wb") as f:
             f.write(public_key[0].to_bytes(public_key[0].bit_length(), 'big'))
@@ -30,8 +29,32 @@ while True:
             f.write(private_key[0].to_bytes(private_key[0].bit_length(), 'big'))
             f.write(private_key[1].to_bytes(private_key[1].bit_length(), 'big'))
 
-    # Cipher and sign message
+    # adding archives to save keys
     elif op == 2:
+
+        with open(public_key_archive, "rb") as f:
+            pubkey = f.read()
+
+        with open(private_key_archive, "rb") as f:
+            privkey = f.read()
+
+        y = 0
+        for x in pubkey.split(b'\x00\x00'):
+            if x != b'':
+                public_key[y] = int.from_bytes(x, 'big')
+                y = 1
+
+        y = 0
+        for x in privkey.split(b'\x00\x00'):
+            if x != b'':
+                private_key[y] = int.from_bytes(x, 'big')
+                y = 1
+
+        print(f'Public key:\nN: {public_key[0]}\nE: {public_key[1]}\n')
+        print(f'Private key:\nN: {private_key[0]}\nD: {private_key[1]}\n')
+
+    # Cipher and sign message
+    elif op == 3:
 
         if private_key == (0, 0) or public_key == (0, 0):
             print("Generate keys first")
@@ -67,7 +90,7 @@ while True:
         print(signature, '\n')
 
     # Decipher and verify cipher's signature
-    elif op == 3:
+    elif op == 4:
 
         if private_key == (0, 0) or public_key == (0, 0):
             print("Generate keys first")
@@ -99,7 +122,7 @@ while True:
             print("\nSignature doesn't match\n")
 
     # Stop the program
-    elif op == 4:
+    elif op == 5:
         break
 
     else:
