@@ -8,11 +8,13 @@ import RSA
 
 public_key, private_key = [0, 0], [0, 0]
 signature, session_key, session_key_cipher = b'', b'', b''
-public_key_archive = Path(__file__).absolute().parent / "public_key.txt"
-private_key_archive = Path(__file__).absolute().parent / "private_key.txt"
+public_key_archive = Path(__file__).absolute().parent / "archives/public_key.txt"
+private_key_archive = Path(__file__).absolute().parent / "archives/private_key.txt"
+signature_file = Path(__file__).absolute().parent / 'archives/signature.txt'
+session_key_cypher_file = Path(__file__).absolute().parent / 'archives/session_key_cypher.txt'
 
 while True:
-    op = int(input("Choose An Option:\n 1- Generate Keys\n 2- Read saved keys\n 3- Cipher\n 4- Decipher\n 5- Exit\n"))
+    op = int(input("Choose An Option:\n 1- Generate Keys\n 2- Read Saved Keys\n 3- Cipher\n 4- Decipher\n 5- Exit\n"))
 
     # Generate public and private keys
     if op == 1:
@@ -36,7 +38,7 @@ while True:
             pubkey = f.read()
 
         with open(private_key_archive, "rb") as f:
-            privkey = f.read()
+            prikey = f.read()
 
         y = 0
         for x in pubkey.split(b'\x00\x00'):
@@ -45,10 +47,14 @@ while True:
                 y = 1
 
         y = 0
-        for x in privkey.split(b'\x00\x00'):
+        for x in prikey.split(b'\x00\x00'):
             if x != b'':
                 private_key[y] = int.from_bytes(x, 'big')
                 y = 1
+
+        if private_key == [0, 0] or public_key == [0, 0]:
+            print("\nGenerate keys first\n")
+            continue
 
         print(f'Public key:\nN: {public_key[0]}\nE: {public_key[1]}\n')
         print(f'Private key:\nN: {private_key[0]}\nD: {private_key[1]}\n')
@@ -56,8 +62,8 @@ while True:
     # Cipher and sign message
     elif op == 3:
 
-        if private_key == (0, 0) or public_key == (0, 0):
-            print("Generate keys first")
+        if private_key == [0, 0] or public_key == [0, 0]:
+            print("\nGenerate keys first\n")
             continue
 
         key, iv = secrets.token_bytes(16), secrets.token_bytes(16)
@@ -68,6 +74,7 @@ while True:
 
         arc = input('\nName of the archive to be cipher: \n')
         archive = Path(__file__).absolute().parent / arc
+
         with open(archive, "rb") as f:
             msg = f.read()
 
@@ -89,22 +96,32 @@ while True:
         print('\nSignature:\n')
         print(signature, '\n')
 
+        with open(signature_file, 'wb') as f:
+            f.write(bytes(signature, 'utf-8'))
+
+        with open(session_key_cypher_file, 'wb') as f:
+            f.write(bytes(session_key_cipher, 'utf-8'))
+
     # Decipher and verify cipher's signature
     elif op == 4:
 
-        if private_key == (0, 0) or public_key == (0, 0):
-            print("Generate keys first")
+        if private_key == [0, 0] or public_key == [0, 0]:
+            print("\nGenerate keys first\n")
             continue
 
         arc = input('\nName of the archive to be decipher:\n')
-        print()
         file = Path(__file__).absolute().parent / arc
+
         with open(file, "rb") as f:
             cipher_msg = f.read()
-       
+        with open(signature_file, 'rb') as f:
+            signature = f.read()
+        with open(session_key_cypher_file, 'rb') as f:
+            session_key_cipher = f.read()
+
         signature = base64.b64decode(signature)
         session_key_cipher = base64.b64decode(session_key_cipher)
-        
+
         session_key = RSA.decipher(private_key, session_key_cipher)
         key, iv = session_key[:16], session_key[16:]
 
