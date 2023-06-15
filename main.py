@@ -12,7 +12,7 @@ signature, session_key, session_key_cipher = b'', b'', b''
 public_key_archive = Path(__file__).absolute().parent / "archives/public_key.txt"
 private_key_archive = Path(__file__).absolute().parent / "archives/private_key.txt"
 signature_file = Path(__file__).absolute().parent / 'archives/signature.txt'
-session_key_cypher_file = Path(__file__).absolute().parent / 'archives/session_key_cypher.txt'
+session_key_cipher_file = Path(__file__).absolute().parent / 'archives/session_key_cypher.txt'
 
 while True:
     op = int(input("Choose An Option:\n 1- Generate Keys\n 2- Read Saved Keys\n 3- Cipher"
@@ -32,7 +32,9 @@ while True:
             f.write(private_key[0].to_bytes(private_key[0].bit_length(), 'big'))
             f.write(private_key[1].to_bytes(private_key[1].bit_length(), 'big'))
 
-    # adding archives to save keys
+        print("Keys generated!")
+
+    # Archives to save keys
     elif op == 2:
 
         with open(public_key_archive, "rb") as f:
@@ -60,7 +62,7 @@ while True:
         print(f'Public key:\nN: {public_key[0]}\nE: {public_key[1]}\n')
         print(f'Private key:\nN: {private_key[0]}\nD: {private_key[1]}\n')
 
-    # Cipher and sign message
+    # Encrypt and sign message
     elif op == 3:
 
         if private_key == [0, 0] or public_key == [0, 0]:
@@ -69,7 +71,6 @@ while True:
 
         try:
             key, iv = secrets.token_bytes(16), secrets.token_bytes(16)
-
             session_key = key + iv
             session_key_cipher = RSA.cipher(public_key, session_key)
             session_key_cipher = base64.b64encode(session_key_cipher).decode("ascii")
@@ -81,6 +82,7 @@ while True:
                 msg = f.read()
 
             cipher_msg = AES.ctr(msg, key, iv)
+
             with open(file, "wb") as f:
                 f.write(cipher_msg)
 
@@ -90,7 +92,7 @@ while True:
             with open(signature_file, 'wb') as f:
                 f.write(bytes(signature, 'utf-8'))
 
-            with open(session_key_cypher_file, 'wb') as f:
+            with open(session_key_cipher_file, 'wb') as f:
                 f.write(bytes(session_key_cipher, 'utf-8'))
 
             print("\nsuccessfully encrypted\n")
@@ -98,7 +100,7 @@ while True:
         except FileNotFoundError:
             print("File not found, must be a typing error")
 
-    # Decipher and verify cipher's signature
+    # Decrypt and verify cipher's signature
     elif op == 4:
 
         if private_key == [0, 0] or public_key == [0, 0]:
@@ -113,7 +115,7 @@ while True:
                 cipher_msg = f.read()
             with open(signature_file, 'rb') as f:
                 signature = f.read()
-            with open(session_key_cypher_file, 'rb') as f:
+            with open(session_key_cipher_file, 'rb') as f:
                 session_key_cipher = f.read()
 
             signature = base64.b64decode(signature)
@@ -134,6 +136,9 @@ while True:
 
         except FileNotFoundError:
             print("File not found, must be a typing error")
+
+        except ValueError:
+            print("Wrong or Empty Session Key Cypher")
 
     # Stop the program
     elif op == 5:

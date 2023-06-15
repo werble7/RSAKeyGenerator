@@ -28,37 +28,12 @@ RCON = (
 )
 
 
-def pad(message):
-    size = 16 - len(message) % 16
-    return message + bytes([size] * size)
-
-
-def unpad(message):
-    return message[:-message[-1]]
-
-
-def rotate(line):
-    return (line*2)[1:5]
-
-
-def convert(msg, size):
-    blocsList = []
-    
-    for indexLetter in range(0, len(msg), size):
-        blocsList.append(msg[indexLetter: indexLetter + size])
-
-    return blocsList
-
-
-def inc(bytes):
-    as_int = int.from_bytes(bytes, "big")
-    while True:
-        as_int += 1
-        yield as_int.to_bytes(16, "big")
-
-
-def xtime(x):
-    return (((x << 1) ^ 0x1B) & 0xFF) if (x & 0x80) else (x << 1)
+def ctr(msg, key, iv):
+    keys = expand_key(key)
+    blocks = convert(msg, 16)
+    ciphers = (cipher(nonce, keys) for nonce in inc(iv))
+    cipherText = map(add_round_key, blocks, ciphers)
+    return b''.join(cipherText)
 
 
 # The AES algorithm takes the Cipher Key, K, and performs a Key Expansion routine to generate a key schedule
@@ -72,10 +47,46 @@ def expand_key(key):
     return [b''.join(word) for word in convert(words, 4)]
 
 
+def convert(msg, size):
+    blocsList = []
+
+    for indexLetter in range(0, len(msg), size):
+        blocsList.append(msg[indexLetter: indexLetter + size])
+
+    return blocsList
+
+
+def inc(iv):
+    as_int = int.from_bytes(iv, "big")
+    while True:
+        as_int += 1
+        yield as_int.to_bytes(16, "big")
+
+
+def cipher(block, keys):
+    state = add_round_key(block, keys[0])
+
+    for i in range(1, 11):
+        state = sub_bytes(state)
+        state = shift_rows(state)
+        if i != 10:
+            state = mix_columns(state)
+        state = add_round_key(state, keys[i])
+    return state
+
+
 # transformation, a Round Key is added to the State by a simple bitwise XOR operation.
 # Each Round Key consists of Nb words from the key schedule
 def add_round_key(state, key):
     return bytes(map(xor, state, key))
+
+
+def xtime(x):
+    return (((x << 1) ^ 0x1B) & 0xFF) if (x & 0x80) else (x << 1)
+
+
+def rotate(line):
+    return (line*2)[1:5]
 
 
 # transformation is a non-linear byte substitution that operates
@@ -98,23 +109,3 @@ def mix_column(r):
 
 def mix_columns(state):
     return [x for r in convert(state, 4) for x in mix_column(r)]
-
-
-def cipher(block, keys):
-    state = add_round_key(block, keys[0])
-    
-    for i in range(1, 11):
-        state = sub_bytes(state)
-        state = shift_rows(state)
-        if i != 10:
-            state = mix_columns(state)
-        state = add_round_key(state, keys[i])
-    return state
-
-
-def ctr(msg, key, iv):
-    keys = expand_key(key)
-    blocks = convert(msg, 16)
-    ciphers = (cipher(nonce, keys) for nonce in inc(iv))
-    cipherText = map(add_round_key, blocks, ciphers)
-    return b''.join(cipherText)
