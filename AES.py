@@ -103,12 +103,12 @@ def mix_columns(state):
 def cipher(block, keys):
     state = add_round_key(block, keys[0])
     
-    for round in range(1, 11):
+    for i in range(1, 11):
         state = sub_bytes(state)
         state = shift_rows(state)
-        if round != 10:
+        if i != 10:
             state = mix_columns(state)
-        state = add_round_key(state, keys[round])
+        state = add_round_key(state, keys[i])
     return state
 
 

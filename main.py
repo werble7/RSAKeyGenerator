@@ -8,20 +8,21 @@ import RSA
 
 public_key, private_key = [0, 0], [0, 0]
 signature, session_key, session_key_cipher = b'', b'', b''
+
 public_key_archive = Path(__file__).absolute().parent / "archives/public_key.txt"
 private_key_archive = Path(__file__).absolute().parent / "archives/private_key.txt"
 signature_file = Path(__file__).absolute().parent / 'archives/signature.txt'
 session_key_cypher_file = Path(__file__).absolute().parent / 'archives/session_key_cypher.txt'
 
 while True:
-    op = int(input("Choose An Option:\n 1- Generate Keys\n 2- Read Saved Keys\n 3- Cipher\n 4- Decipher\n 5- Exit\n"))
+    op = int(input("Choose An Option:\n 1- Generate Keys\n 2- Read Saved Keys\n 3- Cipher"
+                   "\n 4- Decipher\n 5- Exit\n"))
 
     # Generate public and private keys
     if op == 1:
-        public_key, private_key = RSA.generateKeys()
+        print("\nLoading keys...\n")
 
-        print(f'Public key:\nN: {public_key[0]}\nE: {public_key[1]}\n')
-        print(f'Private key:\nN: {private_key[0]}\nD: {private_key[1]}\n')
+        public_key, private_key = RSA.generateKeys()
 
         with open(public_key_archive, "wb") as f:
             f.write(public_key[0].to_bytes(public_key[0].bit_length(), 'big'))
@@ -38,7 +39,7 @@ while True:
             pubkey = f.read()
 
         with open(private_key_archive, "rb") as f:
-            prikey = f.read()
+            prvtkey = f.read()
 
         y = 0
         for x in pubkey.split(b'\x00\x00'):
@@ -47,7 +48,7 @@ while True:
                 y = 1
 
         y = 0
-        for x in prikey.split(b'\x00\x00'):
+        for x in prvtkey.split(b'\x00\x00'):
             if x != b'':
                 private_key[y] = int.from_bytes(x, 'big')
                 y = 1
@@ -66,41 +67,36 @@ while True:
             print("\nGenerate keys first\n")
             continue
 
-        key, iv = secrets.token_bytes(16), secrets.token_bytes(16)
+        try:
+            key, iv = secrets.token_bytes(16), secrets.token_bytes(16)
 
-        session_key = key + iv
-        session_key_cipher = RSA.cipher(public_key, session_key)
-        session_key_cipher = base64.b64encode(session_key_cipher).decode("ascii")
+            session_key = key + iv
+            session_key_cipher = RSA.cipher(public_key, session_key)
+            session_key_cipher = base64.b64encode(session_key_cipher).decode("ascii")
 
-        arc = input('\nName of the archive to be cipher: \n')
-        archive = Path(__file__).absolute().parent / arc
+            arc = input('\nName of the file to be cipher: \n')
+            file = Path(__file__).absolute().parent / 'archives' / arc
 
-        with open(archive, "rb") as f:
-            msg = f.read()
+            with open(file, "rb") as f:
+                msg = f.read()
 
-        cipher_msg = AES.ctr(msg, key, iv)
-        with open(archive, "wb") as f:
-            f.write(cipher_msg)
+            cipher_msg = AES.ctr(msg, key, iv)
+            with open(file, "wb") as f:
+                f.write(cipher_msg)
 
-        signature = RSA.sign(private_key, msg)
-        signature = base64.b64encode(signature).decode("ascii")
+            signature = RSA.sign(private_key, msg)
+            signature = base64.b64encode(signature).decode("ascii")
 
-        print("\nMessage:\n")
-        print(msg, '\n')
-        print('\nCipher message:\n')
-        print(cipher_msg, '\n')
-        print("\nSession's key:\n")
-        print(session_key, '\n')
-        print("\nCipher session's key:\n")
-        print(session_key_cipher, '\n')
-        print('\nSignature:\n')
-        print(signature, '\n')
+            with open(signature_file, 'wb') as f:
+                f.write(bytes(signature, 'utf-8'))
 
-        with open(signature_file, 'wb') as f:
-            f.write(bytes(signature, 'utf-8'))
+            with open(session_key_cypher_file, 'wb') as f:
+                f.write(bytes(session_key_cipher, 'utf-8'))
 
-        with open(session_key_cypher_file, 'wb') as f:
-            f.write(bytes(session_key_cipher, 'utf-8'))
+            print("\nsuccessfully encrypted\n")
+
+        except FileNotFoundError:
+            print("File not found, must be a typing error")
 
     # Decipher and verify cipher's signature
     elif op == 4:
@@ -109,38 +105,38 @@ while True:
             print("\nGenerate keys first\n")
             continue
 
-        arc = input('\nName of the archive to be decipher:\n')
-        file = Path(__file__).absolute().parent / arc
+        try:
+            arc = input('\nName of the file to be decipher:\n')
+            file = Path(__file__).absolute().parent / 'archives' / arc
 
-        with open(file, "rb") as f:
-            cipher_msg = f.read()
-        with open(signature_file, 'rb') as f:
-            signature = f.read()
-        with open(session_key_cypher_file, 'rb') as f:
-            session_key_cipher = f.read()
+            with open(file, "rb") as f:
+                cipher_msg = f.read()
+            with open(signature_file, 'rb') as f:
+                signature = f.read()
+            with open(session_key_cypher_file, 'rb') as f:
+                session_key_cipher = f.read()
 
-        signature = base64.b64decode(signature)
-        session_key_cipher = base64.b64decode(session_key_cipher)
+            signature = base64.b64decode(signature)
+            session_key_cipher = base64.b64decode(session_key_cipher)
 
-        session_key = RSA.decipher(private_key, session_key_cipher)
-        key, iv = session_key[:16], session_key[16:]
+            session_key = RSA.decipher(private_key, session_key_cipher)
+            key, iv = session_key[:16], session_key[16:]
 
-        msg = AES.ctr(cipher_msg, key, iv)
-        check = RSA.verify_signature(public_key, msg, signature)
+            msg = AES.ctr(cipher_msg, key, iv)
+            check = RSA.verify_signature(public_key, msg, signature)
 
-        if check:
-            print("\nSignature matches\n")
-            print('Message:\n')
-            print(msg)
-            archive = Path(__file__).absolute().parent / arc
-            with open(archive, "wb") as f:
-                f.write(msg)
-        else:
-            print("\nSignature doesn't match\n")
+            if check:
+                with open(file, "wb") as f:
+                    f.write(msg)
+                print("\nsuccessfully decrypted\n")
+            else:
+                print("\nSignature doesn't match\n")
+
+        except FileNotFoundError:
+            print("File not found, must be a typing error")
 
     # Stop the program
     elif op == 5:
         break
-
     else:
         continue
