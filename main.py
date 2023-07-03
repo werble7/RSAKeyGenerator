@@ -75,7 +75,7 @@ while True:
             session_key_cipher = RSA.cipher(public_key, session_key)
             session_key_cipher = base64.b64encode(session_key_cipher).decode("ascii")
 
-            arc = input('\nName of the file to be cipher: \n')
+            arc = input('\nName of the file to be ciphered: \n')
             file = Path(__file__).absolute().parent / 'archives' / arc
 
             with open(file, "rb") as f:
@@ -108,7 +108,7 @@ while True:
             continue
 
         try:
-            arc = input('\nName of the file to be decipher:\n')
+            arc = input('\nName of the file to be deciphered:\n')
             file = Path(__file__).absolute().parent / 'archives' / arc
 
             with open(file, "rb") as f:
