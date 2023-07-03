@@ -78,7 +78,7 @@ def cipher(block, keys):
 # transformation, a Round Key is added to the State by a simple bitwise XOR operation.
 # Each Round Key consists of Nb words from the key schedule
 def add_round_key(state, key):
-    return bytes(map(xor, state, key))
+    return bytes(x ^ y for x, y in zip(state, key))
 
 
 def xtime(x):
@@ -86,7 +86,7 @@ def xtime(x):
 
 
 def rotate(line):
-    return (line*2)[1:5]
+    return bytes([line[1]]) + line[2:] + bytes([line[0]])
 
 
 # transformation is a non-linear byte substitution that operates
@@ -97,8 +97,34 @@ def sub_bytes(state):
 
 # transformation, the bytes in the last three rows of the State are
 # cyclically shifted over different numbers of bytes (offsets)
-def shift_rows(state, offset=5):
-    return (state * offset)[::offset]
+def shift_rows(state):
+    shifted_state = bytearray(state)
+
+    # Shift second row by 1 position to the left
+    shifted_state[1], shifted_state[5], shifted_state[9], shifted_state[13] = (
+        shifted_state[5],
+        shifted_state[9],
+        shifted_state[13],
+        shifted_state[1],
+    )
+
+    # Shift third row by 2 positions to the left
+    shifted_state[2], shifted_state[6], shifted_state[10], shifted_state[14] = (
+        shifted_state[10],
+        shifted_state[14],
+        shifted_state[2],
+        shifted_state[6],
+    )
+
+    # Shift fourth row by 3 positions to the left
+    shifted_state[3], shifted_state[7], shifted_state[11], shifted_state[15] = (
+        shifted_state[15],
+        shifted_state[3],
+        shifted_state[7],
+        shifted_state[11],
+    )
+
+    return bytes(shifted_state)
 
 
 # transformation operates on the State column-by-column,
