@@ -128,7 +128,7 @@ def shift_rows(state):
 
 
 # transformation operates on the State column-by-column,
-# treating each column as a four-term polynomial as described in Sec
+# treating each column as a four-term polynomial.
 def mix_column(r):
     return [reduce(xor, [a, *r, xtime(a ^ b)]) for a, b in zip(r, rotate(r))]
 
